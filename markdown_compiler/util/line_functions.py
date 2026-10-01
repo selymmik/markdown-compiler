@@ -311,6 +311,6 @@ def compile_images(line):
     if d == -1:  # find() returns -1 when it cannot find the requested item.
         return line
     if c - endB == 1:  # The opening parenthesis must immediately follow ].
-        return line[0:startA] + '<img src="' + line[c + 1:d] + '"' + ' alt="' + line[startB + 1:endB] + '" />'
+        return line[0:startA] + '<img src="' + line[c + 1:d] + '"' + ' alt="' + line[startB + 1:endB] + '" />' + line[d + 1:]
     else:
         return line
