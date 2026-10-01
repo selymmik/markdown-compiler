@@ -130,19 +130,35 @@ def compile_lines(text):
     </pre>
     <BLANKLINE>
     '''
+    # converts markdown string into HTML calling previously assembled functions.
+    # It also adds paragraph (for everything else) and preformatted markers (for code blocks) whenever appropriate.
+    # # Via the elif in_pre exception - it allows the code to ensure that coding indentation and characters are preserved and no conversions run on it.
+    # Normal text, after being stripped of excess white space is wrapped in paragraph markers and then passed through compile functions to convert inline markdown
+    # Processed lines are joined with newlines and returned as a single HTML string
     lines = text.split('\n')
     new_lines = []
     in_paragraph = False
+    in_pre = False
     for line in lines:
-        line = line.strip()
-        if line=='':
+        stripped = line.strip()  # Strip formats a string to remove extra whitespaces "  Hello" -> "Hello".
+        if stripped == '```':
+            if in_pre is False:
+                in_pre = True
+                line = '<pre>'
+            else:
+                in_pre = False
+                line = '</pre>'
+        elif in_pre:
+            pass
+        elif stripped == '':
             if in_paragraph:
-                line='</p>'
+                line = '</p>'
                 in_paragraph = False
         else:
+            line = stripped
             if line[0] != '#' and not in_paragraph:
                 in_paragraph = True
-                line = '<p>\n'+line
+                line = '<p>\n' + line
             line = compile_headers(line)
             line = compile_strikethrough(line)
             line = compile_bold_stars(line)
@@ -183,15 +199,15 @@ def markdown_to_html(markdown, add_css):
     ins { text-decoration: line-through; }
     </style>
     '''
-    if add_css:
+    if add_css:  # Checks if add_css is trues
         html += '''
 <link rel="stylesheet" href="https://izbicki.me/css/code.css" />
 <link rel="stylesheet" href="https://izbicki.me/css/default.css" />
         '''
-    html+='''
+    html += '''
 </head>
 <body>
-    '''+compile_lines(markdown)+'''
+    ''' + compile_lines(markdown) + '''
 </body>
 </html>
     '''
@@ -225,7 +241,12 @@ def minify(html):
     >>> minify('a\n\n\n\n\n\n\n\n\n\n\n\n\n\nb\n\n\n\n\n\n\n\n\n\n')
     'a b'
     '''
-    return html
+    # Splits string into pieces cutting wherever.
+    # # it finds whitespace. so \n would be considered white space.
+    # Joins each item with a space in between as seen in docstring outputs.
+    # split() returns a list of pieces, removes white space everywhere: ['a', 'b', 'c'].
+    # strip() returns a single string, with the whitespace ends trimmed: 'a b'.
+    return ' '.join(html.split())
 
 
 def convert_file(input_file, add_css):
@@ -253,6 +274,6 @@ def convert_file(input_file, add_css):
     html = markdown_to_html(markdown, add_css)
     html = minify(html)
 
-    # write the output file
-    with open(input_file[:-2]+'html', 'w') as f:
+    # write the output file.
+    with open(input_file[:-2] + 'html', 'w') as f:
         f.write(html)

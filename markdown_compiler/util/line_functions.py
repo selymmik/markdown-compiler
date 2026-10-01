@@ -2,6 +2,7 @@
 Each of the functions in this file takes a single line of input and transforms the line in some way.
 '''
 
+
 def compile_headers(line):
     '''
     Convert markdown headers into <h1>,<h2>,etc tags.
@@ -26,6 +27,18 @@ def compile_headers(line):
     >>> compile_headers('      # this is not a header')
     '      # this is not a header'
     '''
+    if line[0:6] == '######':
+        return '<h6>' + line[6:] + '</h6>'
+    if line[0:5] == '#####':
+        return '<h5>' + line[5:] + '</h5>'
+    if line[0:4] == '####':
+        return '<h4>' + line[4:] + '</h4>'
+    if line[0:3] == '###':
+        return '<h3>' + line[3:] + '</h3>'
+    if line[0:2] == '##':
+        return '<h2>' + line[2:] + '</h2>'
+    if line[0:1] == '#':
+        return '<h1>' + line[1:] + '</h1>'
     return line
 
 
@@ -50,6 +63,23 @@ def compile_italic_star(line):
     >>> compile_italic_star('*')
     '*'
     '''
+    start = -1
+    end = -1
+
+    # Look at the character located at position i.
+    # If that character is *, we found one of the stars AND set start and end star position.
+    for i in range(len(line)):
+        if line[i] == '*':
+            if start == -1:
+                start = i
+            elif end == -1:
+                end = i
+    # Only convert the text if BOTH stars were found.
+    # If either start or end is still -1, then there weren't two stars.
+
+    # from beginning until star + html string indicator + from after * up to end * + html indicator + from one after * to end of string.
+    if start != -1 and end != -1:
+        return line[:start] + '<i>' + line[start + 1:end] + '</i>' + line[end + 1:]
     return line
 
 
@@ -71,6 +101,16 @@ def compile_italic_underscore(line):
     >>> compile_italic_underscore('_')
     '_'
     '''
+    start = -1
+    end = -1
+    for i in range(len(line)):
+        if line[i] == '_':
+            if start == -1:
+                start = i
+            elif end == -1:
+                end = i
+    if start != -1 and end != -1:
+        return line[:start] + '<i>' + line[start + 1:end] + '</i>' + line[end + 1:]
     return line
 
 
@@ -94,6 +134,16 @@ def compile_strikethrough(line):
     >>> compile_strikethrough('~~')
     '~~'
     '''
+    start = -1
+    end = -1
+    for i in range(len(line) - 1):  # because looking for i+1 - if the next character is in the the last position, it would throw and error because the string ended.        if line[i] == '~' and line[i + 1] == '~':
+        if line[i] == '~' and line[i + 1] == '~':
+            if start == -1:
+                start = i
+            elif i >= start + 2:  # checks to ensure that end delineator is at least 2 after the start.
+                end = i
+    if start != -1 and end != -1:
+        return line[:start] + '<ins>' + line[start + 2:end] + '</ins>' + line[end + 2:]
     return line
 
 
@@ -115,6 +165,16 @@ def compile_bold_stars(line):
     >>> compile_bold_stars('**')
     '**'
     '''
+    start = -1
+    end = -1
+    for i in range(len(line) - 1):  # because looking for i+1 - if the next character is in the the last position, it would throw and error because the string ended.
+        if line[i] == '*' and line[i + 1] == '*':
+            if start == -1:
+                start = i
+            elif i >= start + 2:  # checks to ensure that end delineator is at least 2 after the start.
+                end = i
+    if start != -1 and end != -1:
+        return line[:start] + '<b>' + line[start + 2:end] + '</b>' + line[end + 2:]
     return line
 
 
@@ -136,6 +196,16 @@ def compile_bold_underscore(line):
     >>> compile_bold_underscore('__')
     '__'
     '''
+    start = -1
+    end = -1
+    for i in range(len(line) - 1):  # because looking for i+1 - if the next character is in the the last position, it would throw and error because the string ended.
+        if line[i] == '_' and line[i + 1] == '_':
+            if start == -1:
+                start = i
+            elif i >= start + 2:  # checks to ensure that end delineator is at least 2 after the start.
+                end = i
+    if start != -1 and end != -1:
+        return line[:start] + '<b>' + line[start + 2:end] + '</b>' + line[end + 2:]
     return line
 
 
@@ -166,6 +236,19 @@ def compile_code_inline(line):
     >>> compile_code_inline('```python3')
     '```python3'
     '''
+
+    start = -1
+    end = -1
+    for i in range(len(line)):
+        if line[i] == '`':
+            if start == -1:
+                start = i
+            elif end == -1:
+                end = i
+    if start != -1 and end != -1 and end > start + 1:
+        s = line[start + 1:end]  # calls string between the two '`' symbols.
+        s = s.replace('<', '&lt;').replace('>', '&gt;')  # within that string, replaces any < and > with what is specified. use defined s not .
+        return line[:start] + '<code>' + s + '</code>' + line[end + 1:]  # s stands in for the string with the html elements replaced with &lt; and &gt;.
     return line
 
 
@@ -186,7 +269,18 @@ def compile_links(line):
     >>> compile_links('this is wrong: [course webpage](https://github.com/mikeizbicki/cmc-csci040')
     'this is wrong: [course webpage](https://github.com/mikeizbicki/cmc-csci040'
     '''
-    return line
+    startB = line.find('[')
+    if startB == -1:
+        return line
+    endB = line.find(']', startB + 1)
+    c = line.find('(', endB + 1)
+    d = line.find(')', c + 1)
+    if d == -1:  # find funciton throws -1 when it cannot find the item specified.
+        return line
+    if c - endB == 1:  # position immediately after ] should be ( so the difference in position should be 1.
+        return line[0:startB] + '<a href="' + line[c + 1:d] + '">' + line[startB + 1:endB] + '</a>' + line[d + 1:]
+    else:
+        return line
 
 
 def compile_images(line):
@@ -205,4 +299,18 @@ def compile_images(line):
     >>> compile_images('This is an image of Mike Izbicki: ![Mike Izbicki](https://avatars1.githubusercontent.com/u/1052630?v=2&s=460)')
     'This is an image of Mike Izbicki: <img src="https://avatars1.githubusercontent.com/u/1052630?v=2&s=460" alt="Mike Izbicki" />'
     '''
-    return line
+    startA = line.find('!')
+    if startA == -1:
+        return line
+    startB = line.find('[', startA + 1)
+    if startB == -1:
+        return line
+    endB = line.find(']', startB + 1)
+    c = line.find('(', endB + 1)
+    d = line.find(')', c + 1)
+    if d == -1:  # find() returns -1 when it cannot find the requested item.
+        return line
+    if c - endB == 1:  # The opening parenthesis must immediately follow ].
+        return line[0:startA] + '<img src="' + line[c + 1:d] + '"' + ' alt="' + line[startB + 1:endB] + '" />'
+    else:
+        return line
